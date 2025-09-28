@@ -1,0 +1,57 @@
+# Distributed Web Infrastructure
+
+## Architecture Diagram
+![Architecture Diagram](https://imgur.com/your_uploaded_image.png)
+
+## Overview
+This design hosts `www.foobar.com` using a load balancer (HAProxy) and two backend servers. Each backend server runs a web server (Nginx), an application server, the application files (codebase), and a MySQL instance. MySQL is configured as Primary (on Server 1) and Replica (on Server 2).
+
+## Why each element was added
+- **HAProxy (Load Balancer)**: Distributes incoming traffic across the two backend servers to increase availability and allow scaling of web/app capacity.
+- **Two backend servers**: Provide redundancy and capacity. If one server fails, the other continues serving traffic (with degraded capacity).
+- **Nginx (on each backend)**: Handles static content and acts as the HTTP entry point on each server.
+- **Application server + codebase (on each backend)**: Runs the dynamic application logic; having the code on both servers allows either server to fully serve requests.
+- **MySQL Primary/Replica**: The Primary handles writes; the Replica keeps a copy of data for reads and as a failover candidate.
+
+## Load balancer distribution algorithm
+- **Algorithm**: *Round-robin with health checks* (could be `leastconn` for connection-heavy workloads).
+- **How it works**: HAProxy forwards incoming requests in turn to each healthy backend (Server1, Server2). Health checks continuously verify backends; unhealthy nodes are removed from the rotation until they recover.
+
+## Active-Active vs Active-Passive (and what this setup is)
+- **Active-Active**: Multiple nodes actively handle traffic at the same time (e.g., both backend servers are serving requests). This improves throughput and availability. The load balancer enables an **active-active** setup for application servers.
+- **Active-Passive**: One node handles traffic (active) while another waits idle (passive) and only takes over if the active node fails. This is often used for redundant load balancers or databases in failover mode.
+- **This design**: Application layer is **Active-Active** (both servers handle user traffic). The load balancer itself is a single instance here (so it is a SPOF) — to avoid that, you would deploy two LBs in an Active-Passive pair (using VRRP/keepalived) or Active-Active LBs with a virtual IP.
+
+## Primary-Replica (Master-Slave) database cluster
+- **How it works**: The Primary (master) accepts write operations. Replication streams changes from Primary to Replica(s) (typically async or semi-sync). Replicas apply these changes and maintain a copy of the dataset.
+- **Application difference**:
+  - **Primary**: Accepts both read and write queries. All writes must go to Primary.
+  - **Replica**: Typically configured as read-only for the application (serves read queries to reduce load on Primary). Replicas can be promoted to Primary during failover.
+- **Failover**: If Primary fails, an operator or an automated orchestrator promotes a Replica to Primary and updates application/database routing.
+
+## Communication flow (summary)
+1. Client requests `www.foobar.com` → DNS resolves to the load balancer IP.
+2. HAProxy receives the request, runs health checks, and forwards the request (round-robin) to one of the two backend servers.
+3. Nginx handles static content or proxies the request to the application server.
+4. The application server executes logic and queries MySQL (Primary for writes; it may read from Replica if configured).
+5. Response returns to the client via HAProxy.
+
+## Known issues / limitations
+- **SPOFs**:
+  - Single HAProxy instance is a SPOF. If it fails, the whole site is unreachable.
+  - Primary MySQL is a SPOF for writes until a Replica is promoted.
+- **Security**:
+  - No firewall rules are defined — services may be exposed.
+  - No TLS (HTTPS) configured — traffic is not encrypted.
+- **Observability**:
+  - No monitoring or alerting is included — failures could go unnoticed.
+- **Other concerns**:
+  - Replication lag may cause stale reads on replicas.
+  - Automatic failover needs careful handling to avoid split-brain or data inconsistency.
+
+## Recommendations (next steps)
+- Add a second HAProxy node with keepalived for LB redundancy (avoid LB SPOF).
+- Put TLS termination at the LB or enable HTTPS on backends.
+- Add firewall rules (restrict management ports, allow only needed traffic).
+- Implement monitoring (Prometheus + Grafana) and centralized logs.
+- Implement automated failover/orchestration (e.g., MHA, Orchestrator, or managed DB) for MySQL.
