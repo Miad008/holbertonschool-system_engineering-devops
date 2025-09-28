@@ -1,0 +1,24 @@
+# Simple Web Stack
+
+## Architecture Overview
+![Architecture Diagram](https://imgur.com/your_uploaded_image.png)
+
+## Main Components
+- **Domain Name (www.foobar.com)**: Linked to server IP `8.8.8.8` using an **A record** for name resolution.  
+- **Server**: One machine (physical or virtual) running all parts of the stack.  
+- **Nginx (Web Server)**: Entry point that listens for HTTP/HTTPS requests and serves static assets.  
+- **Application Server**: Executes backend logic and connects business rules with data.  
+- **Source Code (Application files)**: The website’s codebase that defines the app behavior.  
+- **MySQL (Database)**: Manages structured data storage and retrieval.  
+
+## How It Works
+1. The client requests `www.foobar.com`.  
+2. DNS resolves the domain to the server IP address.  
+3. The request hits **Nginx**, which serves static files or forwards dynamic ones to the app server.  
+4. The **application server** uses the codebase and queries **MySQL** if needed.  
+5. A response is sent back through Nginx to the user’s browser over **HTTP/HTTPS (TCP/IP)**.  
+
+## Limitations
+- **Single Point of Failure**: A crash of this server brings the entire site offline.  
+- **Maintenance Downtime**: Updates or restarts temporarily make the service unavailable.  
+- **No Scalability**: One machine cannot efficiently support heavy traffic.  
