@@ -1,0 +1,21 @@
+# Secured and Monitored Web Infrastructure
+
+## Architecture Diagram
+![Architecture Diagram](https://imgur.com/your_uploaded_image.png)
+
+## Components
+- **Firewalls (3)**: Protect each server by filtering traffic.  
+- **SSL Certificate**: Encrypts traffic over HTTPS for `www.foobar.com`.  
+- **Monitoring Clients (3)**: Collect logs/metrics and send to monitoring service.  
+- **Load Balancer (HAProxy)**: Distributes requests between 2 servers.  
+- **Servers**: Each with Nginx, app server, codebase, and MySQL.  
+
+## Why Add These
+- **Firewalls**: Block unauthorized access.  
+- **HTTPS (SSL)**: Ensures data privacy and security.  
+- **Monitoring**: Tracks uptime, errors, and QPS (queries per second).  
+
+## Issues
+- **SSL Termination at LB**: Traffic between LB and servers not encrypted.  
+- **Single DB Write Node**: One master → risk of failure.  
+- **Identical Servers**: Mixing DB, app, and web on same machine can cause performance and security issues.  
