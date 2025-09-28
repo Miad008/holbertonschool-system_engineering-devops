@@ -1,0 +1,40 @@
+# Scale Up Infrastructure
+
+## Architecture Diagram
+![Architecture Diagram](https://imgur.com/your_uploaded_image.png)
+
+## Overview
+This design introduces separation of concerns and redundancy for higher availability and scalability:
+- The load balancing layer is now a **cluster of HAProxy servers** instead of a single point.
+- Web, application, and database components are split into **dedicated servers**.
+- An additional server was added to handle increased capacity and role separation.
+
+## Key Differences: Application Server vs Web Server
+- **Web Server (Nginx)**:  
+  Handles HTTP requests, serves static files (CSS, JS, images), and acts as a reverse proxy to forward dynamic requests to the application server.
+- **Application Server**:  
+  Runs the dynamic part of the system (business logic, API endpoints, frameworks like Django, Flask, or Rails). It communicates with the database and generates dynamic responses that the web server delivers to users.
+
+## Additional Elements and Why
+1. **Extra Server**: Added to split components. Each role (web, application, database) now runs on its own machine. This avoids resource contention and allows independent scaling.
+2. **HAProxy Cluster**: Configured in active-passive or active-active mode, removing the single point of failure at the load balancing layer.
+3. **Dedicated Web Server**: Specializes in serving static content and proxying requests. Keeps separation clear between serving files and executing application logic.
+4. **Dedicated Application Server**: Ensures CPU/memory-heavy tasks (business logic, processing) do not interfere with static file serving.
+5. **Dedicated Database Server (MySQL)**: Provides a centralized, reliable datastore. Separation allows database performance tuning, backups, and scaling to be managed independently.
+
+## Benefits of Scale Up
+- **Improved availability**: With clustered load balancers, the site stays online even if one load balancer fails.
+- **Better performance**: Splitting web, app, and DB removes contention for resources.
+- **Easier scaling**: Each tier (web, app, DB) can be scaled independently (e.g., multiple web servers behind LB, multiple app servers, read replicas for DB).
+- **Cleaner architecture**: Clear separation of responsibilities.
+
+## Issues / Trade-offs
+- **Still has SPOFs**: The database server is still a single point of failure if no replication is configured.
+- **Higher cost**: More servers means more infrastructure and management overhead.
+- **Complexity**: Introducing clustering and separation increases operational complexity compared to the simple single-server setup.
+
+## Summary
+The scaled-up architecture introduces:
+- A **HAProxy cluster** for redundancy.
+- Clear **separation** between web server, application server, and database server.  
+This setup improves resilience, performance, and scalability compared to earlier designs.
